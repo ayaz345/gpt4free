@@ -16,9 +16,7 @@ def load_conversations():
     try:
         with open(conversations_file, "rb") as f:
             return pickle.load(f)
-    except FileNotFoundError:
-        return []
-    except EOFError:
+    except (FileNotFoundError, EOFError):
         return []
 
 
@@ -32,7 +30,7 @@ def save_conversations(conversations, current_conversation):
     if not updated:
         conversations.append(current_conversation)
 
-    temp_conversations_file = "temp_" + conversations_file
+    temp_conversations_file = f"temp_{conversations_file}"
     with open(temp_conversations_file, "wb") as f:
         pickle.dump(conversations, f)
 
@@ -74,7 +72,7 @@ if 'current_conversation' not in st.session_state or st.session_state['current_c
 
 input_placeholder = st.empty()
 user_input = input_placeholder.text_input(
-    'You:', value=st.session_state['input_text'], key=f'input_text_-1'#{st.session_state["input_field_key"]}
+    'You:', value=st.session_state['input_text'], key='input_text_-1'
 )
 submit_button = st.button("Submit")
 
@@ -102,15 +100,16 @@ if st.sidebar.button("New Conversation"):
 # Proxy
 st.session_state['proxy'] = st.sidebar.text_input("Proxy: ")
 
-# Searchbar
-search_query = st.sidebar.text_input("Search Conversations:", value=st.session_state.get('search_query', ''), key='search')
-
-if search_query:
-    filtered_conversations = []
-    for conversation in st.session_state.conversations:
-        if search_query in conversation['user_inputs'][0]:
-            filtered_conversations.append(conversation)
-
+if search_query := st.sidebar.text_input(
+    "Search Conversations:",
+    value=st.session_state.get('search_query', ''),
+    key='search',
+):
+    filtered_conversations = [
+        conversation
+        for conversation in st.session_state.conversations
+        if search_query in conversation['user_inputs'][0]
+    ]
     conversations = sorted(filtered_conversations, key=lambda c: Levenshtein.distance(search_query, c['user_inputs'][0]))
     sidebar_header = f"Search Results ({len(conversations)})"
 else:
